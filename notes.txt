@@ -1,0 +1,31 @@
+Double Entry Bookkeeping
+It allows us to trace back all transactions.
+
+allow only one concurrent withdrawl for an account no. lock the account number during the process. "There is another ongoing transaction at this moment". This might be a bad message to show to the user because they might get scared that their account is hacked :) Make the user account accessible only on one device at a time. Store the session variable and account number in the cache and when a new request comes, check if it is in the cache. If it is, warn the user that the account is being used somewhere else and do not authorize access. This way we can reduce race conditions at user level.
+
+When a user clicks pay multiple times, generate a transaction session/ some id which is deterministic which is composed of accountno, sessionvariable. When subsequent queries arrive, look up their transaction sessions/ id's and drop them.
+
+For a single business account which has high amount of concurrent transactions, maintain a queue  for writes(deposits/transfers).  whenever a new transaction is created,  enqueue the transaction based on the order of created_time for each transaction. So we are basically serializing which prevents dirty reads, repeatable reads and phantom reads too. Reads should not be a problem since we set the isolation level of the database as READ COMMITTED. After all the transactions are done, destory the queue. This works well for business accounts which act as payment gateways. The serialization works 99 percent of the time if we take order of milliseconds consideration. Time Zone differences might pose a problem. So set the timezone of the database to UTC.
+
+We can use optimistic Locking for single user accounts. Pessimistic Locking is unsuitable for high transaction volume business accounts.
+
+While transferring from one account to another, or during withdrawl, we will assert if the balance is greater than or equal to amount. *so, we need to fetch the balance first.
+
+Whenever a write is going on to an account and if any other user requests read on that object, we could delay the response by few milliseconds until the transaction is complete or return last committed data.
+
+Whenever a deduction is going on to an account and if any other user requests deduction on that account, we could serialize them
+
+begin;
+select balance as initial_balance_a from balances where account_no = 'account_a'
+assert inital_balance_a>= amount
+update balance from balances where account_no = 'account_a' and balance = initial_balance_a
+set balance = initial_balance_a - amount
+update balance from balances where account_no = 'account_b'
+set balance = balance + amount
+commit;
+
+If power fails or db goes down during this process, the transaction is rolled back.
+
+We should not return to_account balance to user. The user should not have access to that. Unless the account is a joint account.
+
+Account Types : Joint, Business Personal
