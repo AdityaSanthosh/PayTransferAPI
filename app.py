@@ -28,6 +28,7 @@ def deposit():
     account = data['from']
     amount = Decimal(data["amount"])
     balance = None
+    # not finished. example script already present in deposit.py
     return json.dumps({'account': account, 'balance': balance, 'message': 'success/failed'})
 
 
@@ -39,25 +40,36 @@ def transfer():
     from_account = data['from']
     to_account = data["to"]
     amount = int(data["amount"])
-    try:
-        cur.execute("select transact(%s,%s,%s);", (from_account, to_account, amount))
-    except:
-        return Exception
+    cur.execute("call transact(%s,%s,%s,null);", (from_account, to_account, amount))
+    """ This one works too...
+    cur.execute("create or replace function transact(fromacc varchar,toacc varchar, amt numeric) RETURNS uuid as $$ "
+                "update balances set balance = balance - amt where account_no = fromacc;"
+                "select balance from balances where account_no = fromacc;"
+                "update balances set balance = balance + amt where account_no = toacc;"
+                "INSERT INTO transactions(amount, credit_account_no, debit_account_no) "
+                "VALUES (amt, toacc, fromacc) RETURNING id;"
+                "--         EXCEPTION WHEN UNIQUE_VIOLATION THEN     -- "
+                "inserted in concurrent session.--             RAISE NOTICE 'Transaction ID already exists!';  "
+                "$$ "
+                "LANGUAGE sql;")
+    """
+    conn.commit()
     transaction_id = cur.fetchone()
     cur.execute(f"select balance from balances where account_no = '{from_account}';")
-    from_account_bal = cur.fetchone()
+    from_balance = cur.fetchone()
+    cur.execute(f"select balance from balances where account_no = '{to_account}';")
+    to_balance = cur.fetchone()
     response = {
         "id": transaction_id,
         "from": {
             "id": from_account,
-            "balance": from_account_bal
+            "balance": from_balance
         },
         "to": {
             "id": to_account,
-            "balance": "current_balance"
+            "balance": to_balance
         },
         "transfered": amount,
-        "created_datetime": "transaction created time"
     }
     return json.dumps(response, cls=DecimalEncoder)
 
