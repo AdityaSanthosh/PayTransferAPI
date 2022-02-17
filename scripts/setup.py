@@ -51,7 +51,23 @@ cur.execute("ALTER ROLE aditya SET TIMEZONE TO 'UTC';")
 cur.execute("ALTER TABLE balances ADD CONSTRAINT Check_minimumBalance CHECK (balance >= 100);")
 cur.execute("CREATE RULE transactions_delete AS ON DELETE TO transactions DO INSTEAD NOTHING;")
 
-
+# Please run the following procedure in psql tool.
+"""
+CREATE or replace PROCEDURE transact(fromacc varchar, toacc varchar, amt numeric, out transactionid uuid)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    update balances
+            set balance = balance - amt
+            where account_no = fromacc;
+            update balances
+            set balance = balance + amt
+            where account_no = toacc;
+            INSERT INTO transactions(amount, credit_account_no, debit_account_no) VALUES (amt, toacc, fromacc)
+            returning id into transactionid;
+END;
+$$;
+"""
 
 conn.commit()
 cur.close()
