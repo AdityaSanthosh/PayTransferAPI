@@ -4,6 +4,7 @@ from flask import Flask
 from flask import request
 import psycopg2
 import json
+from time import time
 
 
 class DecimalEncoder(json.JSONEncoder):
@@ -34,6 +35,9 @@ def deposit():
 
 @app.route('/transfer', methods=['POST'])
 def transfer():
+    # if user.ongoingtransaction:
+    #   return "You sent request multiple times" or drop the transaction
+    # user.ongoingtransaction = True
     assert request.path == '/transfer'
     assert request.method == 'POST'
     data = json.loads(request.data)
@@ -59,6 +63,9 @@ def transfer():
     from_balance = cur.fetchone()
     cur.execute(f"select balance from balances where account_no = '{to_account}';")
     to_balance = cur.fetchone()
+    transaction_id_clean = [data for data in transaction_id][0]
+    cur.execute(f"select created_datetime from transactions where id = '{transaction_id_clean}';")
+    created_at = cur.fetchone()
     response = {
         "id": transaction_id,
         "from": {
@@ -70,8 +77,10 @@ def transfer():
             "balance": to_balance
         },
         "transfered": amount,
+        "created_datetime": created_at
     }
-    return json.dumps(response, cls=DecimalEncoder)
+    # user.ongoingtransaction = False
+    return json.dumps(response, cls=DecimalEncoder, default=str)
 
 
 if __name__ == '__main__':
