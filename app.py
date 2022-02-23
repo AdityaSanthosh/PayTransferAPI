@@ -14,7 +14,7 @@ class DecimalEncoder(json.JSONEncoder):
 
 app = Flask(__name__)
 
-conn = psycopg2.connect("dbname=transactionsdb user=postgres host=localhost password=postgres")
+conn = psycopg2.connect("dbname=transactionsdb user=postgres host=192.168.99.100 password=postgres")
 cur = conn.cursor()
 
 
@@ -58,8 +58,12 @@ def transfer():
         data = json.loads(request.data)
     except json.JSONDecodeError:
         return json.dumps({'message': 'Please Enter the Input in the JSON format correctly'})
-    from_account = data['from']
-    to_account = data["to"]
+    try:
+        from_account = data['from_account']
+        to_account = data["to_account"]
+    except KeyError:
+        return json.dumps({'message': 'Please Enter the Input in 3 fields. from_account, to_account and amount. all '
+                                      'strings'})
     try:
         amount = int(data["amount"])
     except ValueError:

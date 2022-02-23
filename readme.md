@@ -1,4 +1,6 @@
 ### Setup Instructions
+
+###### Build from Source
 1. Download Postgres, an API testing tool (I used Insomnia). Install them
 2. `git clone` this repo. Create a virtual environment.  Install the packages in `requirements.txt` file
 3. Spin up a new server and a new postgres database. Replace the database configuration present in the `app.py` file with that of your database
@@ -6,6 +8,14 @@
 5.  Run `flask run` after exporting the env variables. Check the official flask docs if necessary.
 6. Send a post request to `localhost:5000` (flask port) in json format with the input format mentioned below.
 7. You can see the output in the insomnia/ postman terminal.
+
+###### Docker Image
+A `Dockerfile` and `docker-compose` is present in the root directory.
+1. Download and install Docker
+2. Run `docker-compose up -d --build` which pulls the official python image, installs all the necessary packages, spins up 2 containers running
+`flask` and `postgres`.
+3. Using `Insomnia` or `postman` (api testing tool), send requests in below input format at `http://192.168.99.100:5000/deposit` and `http://192.168.99.100:5000/transfer`.
+4. Happy Testing!!
 
 ### Input format:
 
